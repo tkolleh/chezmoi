@@ -22,6 +22,7 @@ require (
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
+	github.com/muesli/combinator v0.3.0
 	github.com/muesli/termenv v0.7.2 // indirect
 	github.com/pelletier/go-toml v1.8.0
 	github.com/pkg/diff v0.0.0-20190930165518-531926345625
@@ -40,6 +41,7 @@ require (
 	github.com/twpayne/go-xdg/v3 v3.1.0
 	github.com/yuin/goldmark v1.2.1 // indirect
 	go.etcd.io/bbolt v1.3.5
+	go.uber.org/multierr v1.1.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
@@ -48,4 +50,5 @@ require (
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/ini.v1 v1.60.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )
