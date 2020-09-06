@@ -126,13 +126,13 @@ func TestTargetStateEntryApplyAndEqual(t *testing.T) {
 				},
 			} {
 				t.Run(tc2.name, func(t *testing.T) {
-					testFS, cleanup, err := vfst.NewTestFS(tc2.root)
+					fs, cleanup, err := vfst.NewTestFS(tc2.root)
 					require.NoError(t, err)
 					defer cleanup()
-					fs := newTestRealSystem(testFS)
+					s := newTestRealSystem(fs)
 
 					// Read the initial destination state entry from fs.
-					destStateEntry, err := NewDestStateEntry(fs, "/home/user/foo")
+					destStateEntry, err := NewDestStateEntry(s, "/home/user/foo")
 					require.NoError(t, err)
 
 					// Apply the target state entry.
@@ -145,7 +145,7 @@ func TestTargetStateEntryApplyAndEqual(t *testing.T) {
 
 					// Read the updated destination state entry from fs and
 					// verify that it is equal to the target state entry.
-					newDestStateEntry, err := NewDestStateEntry(fs, "/home/user/foo")
+					newDestStateEntry, err := NewDestStateEntry(s, "/home/user/foo")
 					require.NoError(t, err)
 					equal, err := tc1.targetStateEntry.Equal(newDestStateEntry, Umask)
 					require.NoError(t, err)
@@ -154,6 +154,32 @@ func TestTargetStateEntryApplyAndEqual(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTargetStateRename(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]interface{}{
+		"/home/user/.local/share/chezmoi/dot_bashrc": "# contents of .bashrc\n",
+	})
+	require.NoError(t, err)
+	defer cleanup()
+	s := newTestRealSystem(fs)
+
+	destStateEntry, err := NewDestStateEntry(s, "/home/user/.local/share/chezmoi/dot_bashrc")
+	require.NoError(t, err)
+
+	targetStateRename := &TargetStateRename{
+		newName: "/home/user/.local/share/chezmoi/dot_bashrc.tmpl",
+	}
+	require.NoError(t, targetStateRename.Apply(s, destStateEntry, Umask))
+
+	vfst.RunTests(t, fs, "",
+		vfst.TestPath("/home/user/.local/share/chezmoi/dot_bashrc",
+			vfst.TestDoesNotExist,
+		),
+		vfst.TestPath("/home/user/.local/share/chezmoi/dot_bashrc.tmpl",
+			vfst.TestContentsString("# contents of .bashrc\n"),
+		),
+	)
 }
 
 func targetStateTest(t *testing.T, ts TargetStateEntry) []vfst.PathTest {
@@ -179,6 +205,11 @@ func targetStateTest(t *testing.T, ts TargetStateEntry) []vfst.PathTest {
 		return []vfst.PathTest{
 			vfst.TestModeIsRegular,
 			vfst.TestModePerm(ts.perm &^ Umask),
+		}
+	case *TargetStateRename:
+		// FIXME test for presence of newName
+		return []vfst.PathTest{
+			vfst.TestDoesNotExist,
 		}
 	case *TargetStateScript:
 		return nil // FIXME how to verify scripts?

@@ -38,6 +38,11 @@ type TargetStatePresent struct {
 	perm os.FileMode
 }
 
+// A TargetStateRename represents the renaming of an entry in the target state.
+type TargetStateRename struct {
+	newName string
+}
+
 // A TargetStateScript represents the state of a script.
 type TargetStateScript struct {
 	*lazyContents
@@ -201,6 +206,21 @@ func (t *TargetStatePresent) Equal(destStateEntry DestStateEntry, umask os.FileM
 func (t *TargetStatePresent) Evaluate() error {
 	_, err := t.ContentsSHA256()
 	return err
+}
+
+// Apply renames destStateEntry.
+func (t *TargetStateRename) Apply(s System, destStateEntry DestStateEntry, umask os.FileMode) error {
+	return s.Rename(destStateEntry.Path(), t.newName)
+}
+
+// Equal returns false because destStateEntry has not been renamed.
+func (t *TargetStateRename) Equal(destStateEntry DestStateEntry, umask os.FileMode) (bool, error) {
+	return false, nil
+}
+
+// Evaluate does nothing.
+func (t *TargetStateRename) Evaluate() error {
+	return nil
 }
 
 // Apply runs t.

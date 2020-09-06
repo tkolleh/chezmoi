@@ -129,7 +129,7 @@ type AddOptions struct {
 }
 
 // Add adds sourceStateEntry to s.
-func (s *SourceState) Add(sourceSystem System, destDir string, destPathInfos map[string]os.FileInfo, options *AddOptions) error {
+func (s *SourceState) Add(sourceSystem System, destPathInfos map[string]os.FileInfo, options *AddOptions) error {
 	destPaths := make([]string, 0, len(destPathInfos))
 	for destPath := range destPathInfos {
 		destPaths = append(destPaths, destPath)
@@ -140,7 +140,7 @@ func (s *SourceState) Add(sourceSystem System, destDir string, destPathInfos map
 	}
 	for _, destPath := range destPaths {
 		// FIXME rename/remove old
-		targetName := strings.TrimPrefix(destPath, destDir+"/")
+		targetName := strings.TrimPrefix(destPath, s.destDir+"/")
 		sourceStateEntry, err := s.sourceStateEntry(sourceSystem, destPath, destPathInfos[destPath], options)
 		if err != nil {
 			return err
