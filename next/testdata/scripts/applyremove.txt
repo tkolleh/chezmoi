@@ -2,7 +2,7 @@
 
 chezmoi apply --dry-run --remove
 exists $HOME${/}.bashrc
-chezmoi apply --remove --verbose
+chezmoi apply --remove
 ! exists $HOME${/}.bashrc
 
 -- home/user/.bashrc --

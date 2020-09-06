@@ -28,7 +28,7 @@ cmp $HOME/.bashrc golden/.bashrc
 
 # test that chezmoi init does not clone the repo if it is already checked out but does create the config file
 chhome home4${/}user
-chezmoi init --source=${HOME}/dotfiles --verbose file://$WORK/nonexistentrepo
+chezmoi init --source=${HOME}/dotfiles file://$WORK/nonexistentrepo
 exists ${CHEZMOICONFIGDIR}/chezmoi.toml
 
 -- home2/user/.gitconfig --

@@ -1,0 +1,29 @@
+mkhomedir
+mksourcedir golden
+
+chezmoi add ${HOME}${/}.bashrc
+cmp ${CHEZMOISOURCEDIR}/dot_bashrc golden/dot_bashrc
+
+[short] stop
+
+chezmoi add ${HOME}${/}.binary
+[!windows] cmp ${CHEZMOISOURCEDIR}/executable_dot_binary golden/executable_dot_binary
+[windows] cmp ${CHEZMOISOURCEDIR}/dot_binary golden/executable_dot_binary
+
+chezmoi add --empty ${HOME}${/}.hushlogin
+cmp ${CHEZMOISOURCEDIR}/empty_dot_hushlogin golden/empty_dot_hushlogin
+
+chezmoi add ${HOME}${/}.symlink
+cmp ${CHEZMOISOURCEDIR}/symlink_dot_symlink golden/symlink_dot_symlink
+
+stop # FIXME
+
+chezmoi add ${HOME}${/}.absent
+cmp ${CHEZMOISOURCEDIR}/dot_absent golden/dot_absent
+
+chezmoi add ${HOME}${/}.ssh
+exists ${HOME}/private_dot_ssh
+cmp ${CHEZMOISOURCEDIR}/private_dot_ssh/config ${HOME}/.ssh/config
+
+chezmoi add --exists ${HOME}${/}.exists
+cmp ${CHEZMOISOURCEDIR}/exists_dot_exists golden/exists_dot_exists

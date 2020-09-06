@@ -16,6 +16,7 @@ var addCmd = &cobra.Command{
 	RunE:    config.makeRunEWithSourceState(config.runAddCmd),
 	Annotations: map[string]string{
 		modifiesSourceDirectory: "true",
+		requiresSourceDirectory: "true",
 	},
 }
 

@@ -240,7 +240,7 @@ func cmdMkSourceDir(ts *testscript.TestScript, neg bool, args []string) {
 			"private_dot_ssh": map[string]interface{}{
 				"config": "# contents of .ssh/config\n",
 			},
-			"symlink_dot_symlink": ".bashrc\n",
+			"symlink_dot_symlink": ".bashrc",
 		},
 	})
 	if err != nil {

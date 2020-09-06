@@ -11,6 +11,62 @@ import (
 	"github.com/twpayne/go-vfs/vfst"
 )
 
+func TestSourceStateAdd(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		root       interface{}
+		destPaths  []string
+		addOptions AddOptions
+		tests      []interface{}
+	}{
+		{
+			name: "file",
+			root: map[string]interface{}{
+				"/home/user/.bashrc":              "# contents of .bashrc\n",
+				"/home/user/.local/share/chezmoi": &vfst.Dir{Perm: 0o777},
+			},
+			destPaths: []string{
+				"/home/user/.bashrc",
+			},
+			addOptions: AddOptions{
+				Include: NewIncludeSet(IncludeAll),
+			},
+			tests: []interface{}{
+				vfst.TestPath("/home/user/.local/share/chezmoi/dot_bashrc",
+					vfst.TestModeIsRegular,
+					vfst.TestModePerm(0o666&^Umask),
+					vfst.TestContentsString("# contents of .bashrc\n"),
+				),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fs, cleanup, err := vfst.NewTestFS(tc.root)
+			require.NoError(t, err)
+			defer cleanup()
+			system := newTestRealSystem(fs)
+
+			s := NewSourceState(
+				WithDestDir("/home/user"),
+				WithSourceDir("/home/user/.local/share/chezmoi"),
+				WithSystem(system),
+			)
+			require.NoError(t, s.Read())
+			require.NoError(t, s.Evaluate())
+
+			destPathInfos := make(map[string]os.FileInfo)
+			for _, destPath := range tc.destPaths {
+				info, err := fs.Lstat(destPath)
+				require.NoError(t, err)
+				destPathInfos[destPath] = info
+			}
+			require.NoError(t, s.Add(system, destPathInfos, &tc.addOptions))
+
+			vfst.RunTests(t, fs, "", tc.tests...)
+		})
+	}
+}
+
 func TestSourceStateApplyAll(t *testing.T) {
 	// FIXME script tests
 	// FIXME script template tests

@@ -140,16 +140,16 @@ func (s *SourceState) Add(sourceSystem System, destPathInfos map[string]os.FileI
 	}
 	for _, destPath := range destPaths {
 		// FIXME rename/remove old
-		targetName := strings.TrimPrefix(destPath, s.destDir+"/")
-		sourceStateEntry, err := s.sourceStateEntry(sourceSystem, destPath, destPathInfos[destPath], options)
+		// targetName := strings.TrimPrefix(destPath, s.destDir+"/") // remove?
+		parentDir := "" // FIXME
+		sourceStateEntry, err := s.sourceStateEntry(sourceSystem, destPath, destPathInfos[destPath], parentDir, options)
 		if err != nil {
 			return err
 		}
 		if sourceStateEntry != nil {
-			targetSourceState.entries[targetName] = sourceStateEntry
+			targetSourceState.entries[sourceStateEntry.Path()] = sourceStateEntry
 		}
 	}
-	// FIXME include
 	return targetSourceState.ApplyAll(sourceSystem, s.sourceDir, options.Include, options.umask)
 }
 
@@ -702,7 +702,7 @@ func (s *SourceState) sortedTargetNames() []string {
 	return targetNames
 }
 
-func (s *SourceState) sourceStateEntry(system System, destPath string, info os.FileInfo, options *AddOptions) (SourceStateEntry, error) {
+func (s *SourceState) sourceStateEntry(system System, destPath string, info os.FileInfo, parentDir string, options *AddOptions) (SourceStateEntry, error) {
 	destStateEntry, err := NewDestStateEntry(system, destPath)
 	if err != nil {
 		return nil, err
@@ -711,20 +711,32 @@ func (s *SourceState) sourceStateEntry(system System, destPath string, info os.F
 		return nil, nil
 	}
 	// FIXME create parents
-	sourcePath := "" // FIXME
 	switch destStateEntry := destStateEntry.(type) {
 	case *DestStateAbsent:
 		return nil, fmt.Errorf("%s: not found", destPath)
 	case *DestStateDir:
+		attributes := DirAttributes{
+			Name:    info.Name(),
+			Exact:   options.Exact,
+			Private: UNIXFileModes && info.Mode()&os.ModePerm&0o77 == 0,
+		}
 		return &SourceStateDir{
-			path: sourcePath,
-			Attributes: DirAttributes{
-				Name:    info.Name(),
-				Exact:   options.Exact,
-				Private: UNIXFileModes && info.Mode()&os.ModePerm&0o77 == 0,
+			path:       path.Join(parentDir, attributes.BaseName()),
+			Attributes: attributes,
+			targetStateEntry: &TargetStateDir{
+				perm: 0o777,
 			},
 		}, nil
 	case *DestStateFile:
+		attributes := FileAttributes{
+			Name:       info.Name(),
+			Type:       SourceFileTypeFile,
+			Empty:      options.Empty,
+			Encrypted:  options.Encrypt,
+			Executable: UNIXFileModes && info.Mode()&os.ModePerm&0o111 != 0,
+			Private:    UNIXFileModes && info.Mode()&os.ModePerm&0o77 == 0,
+			Template:   options.Template || options.AutoTemplate,
+		}
 		contents, err := destStateEntry.Contents()
 		if err != nil {
 			return nil, err
@@ -732,22 +744,24 @@ func (s *SourceState) sourceStateEntry(system System, destPath string, info os.F
 		if options.AutoTemplate {
 			contents = autoTemplate(contents, s.TemplateData())
 		}
+		lazyContents := &lazyContents{
+			contents: contents,
+		}
 		return &SourceStateFile{
-			path: sourcePath,
-			Attributes: FileAttributes{
-				Name:       info.Name(),
-				Type:       SourceFileTypeFile,
-				Empty:      options.Empty,
-				Encrypted:  options.Encrypt,
-				Executable: UNIXFileModes && info.Mode()&os.ModePerm&0o111 != 0,
-				Private:    UNIXFileModes && info.Mode()&os.ModePerm&0o77 == 0,
-				Template:   options.Template || options.AutoTemplate,
-			},
-			lazyContents: &lazyContents{
-				contents: contents,
+			path:         path.Join(parentDir, attributes.BaseName()),
+			Attributes:   attributes,
+			lazyContents: lazyContents,
+			targetStateEntry: &TargetStateFile{
+				lazyContents: lazyContents,
+				perm:         0o666,
 			},
 		}, nil
 	case *DestStateSymlink:
+		attributes := FileAttributes{
+			Name:     info.Name(),
+			Type:     SourceFileTypeSymlink,
+			Template: options.Template || options.AutoTemplate,
+		}
 		linkname, err := destStateEntry.Linkname()
 		if err != nil {
 			return nil, err
@@ -756,15 +770,16 @@ func (s *SourceState) sourceStateEntry(system System, destPath string, info os.F
 		if options.AutoTemplate {
 			contents = autoTemplate(contents, s.TemplateData())
 		}
+		lazyContents := &lazyContents{
+			contents: contents,
+		}
 		return &SourceStateFile{
-			path: sourcePath, // FIXME
-			Attributes: FileAttributes{
-				Name:     info.Name(),
-				Type:     SourceFileTypeSymlink,
-				Template: options.Template || options.AutoTemplate,
-			},
-			lazyContents: &lazyContents{
-				contents: contents,
+			path:         path.Join(parentDir, attributes.BaseName()),
+			Attributes:   attributes,
+			lazyContents: lazyContents,
+			targetStateEntry: &TargetStateFile{
+				lazyContents: lazyContents,
+				perm:         0o666,
 			},
 		}, nil
 	default:
