@@ -3,20 +3,26 @@
 mkhomedir golden
 mkhomedir
 
+# create a repo
 exec git init --bare $WORK/dotfiles.git
-
 chezmoi init file://$WORK/dotfiles.git
 
-# create a commit
-cp golden/.bashrc $CHEZMOISOURCEDIR/dot_bashrc # FIXME use chezmoi add
-chezmoi git add dot_bashrc
-chezmoi git commit -- --message 'Add dot_bashrc'
-chezmoi git push
+# test that chezmoi add creates and pushes a commit
+chezmoi add ${HOME}${/}.bashrc
+exec git --git-dir=$WORK/dotfiles.git show HEAD
+stdout 'Add dot_bashrc'
 
-# test that updating a file creates and pushes a commit
+[short] stop
+
+# test that chezmoi edit creates and pushes a commit
 chezmoi edit $HOME${/}.bashrc
-exec git --git-dir=$WORK/dotfiles.git log
+exec git --git-dir=$WORK/dotfiles.git show HEAD
 stdout 'Update dot_bashrc'
+
+# test that chezmoi forget creates and pushes a commit
+chezmoi forget --force ${HOME}${/}.bashrc
+exec git --git-dir=$WORK/dotfiles.git show HEAD
+stdout 'Remove dot_bashrc'
 
 -- home/user/.config/chezmoi/chezmoi.toml --
 [git]

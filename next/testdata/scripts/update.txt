@@ -8,7 +8,7 @@ exec git init --bare $WORK/dotfiles.git
 chezmoi init file://$WORK/dotfiles.git
 
 # create a commit
-cp golden/.bashrc $CHEZMOISOURCEDIR/dot_bashrc # FIXME use chezmoi add
+chezmoi add ${HOME}${/}.bashrc
 chezmoi git add dot_bashrc
 chezmoi git commit -- --message 'Add dot_bashrc'
 chezmoi git push

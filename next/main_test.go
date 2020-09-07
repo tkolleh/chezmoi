@@ -44,14 +44,15 @@ func TestScript(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Cmds: map[string]func(*testscript.TestScript, bool, []string){
-			"chhome":      cmdChHome,
-			"cmpmod":      cmdCmpMod,
-			"edit":        cmdEdit,
-			"mkfile":      cmdMkFile,
-			"mkhomedir":   cmdMkHomeDir,
-			"mksourcedir": cmdMkSourceDir,
-			"umask":       cmdUmask,
-			"unix2dos":    cmdUNIX2DOS,
+			"chhome":         cmdChHome,
+			"cmpmod":         cmdCmpMod,
+			"edit":           cmdEdit,
+			"mkfile":         cmdMkFile,
+			"mkhomedir":      cmdMkHomeDir,
+			"mksourcedir":    cmdMkSourceDir,
+			"rmfinalnewline": cmdRmFinalNewline,
+			"umask":          cmdUmask,
+			"unix2dos":       cmdUNIX2DOS,
 		},
 		Condition: func(cond string) (bool, error) {
 			switch cond {
@@ -96,7 +97,7 @@ func cmdCmpMod(ts *testscript.TestScript, neg bool, args []string) {
 		ts.Fatalf("usage: cmpmod mode path")
 	}
 	mode64, err := strconv.ParseUint(args[0], 8, 32)
-	if err != nil || os.FileMode(mode64)&os.ModePerm != os.FileMode(mode64) {
+	if err != nil || os.FileMode(mode64).Perm() != os.FileMode(mode64) {
 		ts.Fatalf("invalid mode: %s", args[0])
 	}
 	if !chezmoi.UNIXFileModes {
@@ -106,12 +107,12 @@ func cmdCmpMod(ts *testscript.TestScript, neg bool, args []string) {
 	if err != nil {
 		ts.Fatalf("%s: %v", args[1], err)
 	}
-	equal := info.Mode()&os.ModePerm&^chezmoi.Umask == os.FileMode(mode64)&^chezmoi.Umask
+	equal := info.Mode().Perm()&^chezmoi.Umask == os.FileMode(mode64)&^chezmoi.Umask
 	if neg && equal {
-		ts.Fatalf("%s unexpectedly has mode %03o", args[1], info.Mode()&os.ModePerm)
+		ts.Fatalf("%s unexpectedly has mode %03o", args[1], info.Mode().Perm())
 	}
 	if !neg && !equal {
-		ts.Fatalf("%s has mode %03o, expected %03o", args[1], info.Mode()&os.ModePerm, os.FileMode(mode64))
+		ts.Fatalf("%s has mode %03o, expected %03o", args[1], info.Mode().Perm(), os.FileMode(mode64))
 	}
 }
 
@@ -248,6 +249,30 @@ func cmdMkSourceDir(ts *testscript.TestScript, neg bool, args []string) {
 	}
 }
 
+// cmdRmFinalNewline removes final newlines.
+func cmdRmFinalNewline(ts *testscript.TestScript, neg bool, args []string) {
+	if neg {
+		ts.Fatalf("unsupported: ! rmfinalnewline")
+	}
+	if len(args) < 1 {
+		ts.Fatalf("usage: rmfinalnewline paths...")
+	}
+	for _, arg := range args {
+		filename := ts.MkAbs(arg)
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			ts.Fatalf("%s: %v", filename, err)
+		}
+		if len(data) == 0 || data[len(data)-1] != '\n' {
+			continue
+		}
+		//nolint:gosec
+		if err := ioutil.WriteFile(filename, data[:len(data)-1], 0o666); err != nil {
+			ts.Fatalf("%s: %v", filename, err)
+		}
+	}
+}
+
 // cmdUNIX2DOS converts files from UNIX line endings to DOS line endings.
 func cmdUNIX2DOS(ts *testscript.TestScript, neg bool, args []string) {
 	if neg {
@@ -262,7 +287,7 @@ func cmdUNIX2DOS(ts *testscript.TestScript, neg bool, args []string) {
 		if err != nil {
 			ts.Fatalf("%s: %v", filename, err)
 		}
-		data = bytes.Join(bytes.Split(data, []byte{'\n'}), []byte{'\r', '\n'})
+		data = bytes.Replace(data, []byte{'\n'}, []byte{'\r', '\n'}, -1)
 		//nolint:gosec
 		if err := ioutil.WriteFile(filename, data, 0o666); err != nil {
 			ts.Fatalf("%s: %v", filename, err)
