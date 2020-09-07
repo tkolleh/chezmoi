@@ -26,7 +26,8 @@ cmp ${CHEZMOISOURCEDIR}/symlink_dot_symlink golden/symlink_dot_symlink
 
 # test adding a private directory
 chezmoi add ${HOME}${/}.ssh
-exists ${CHEZMOISOURCEDIR}/private_dot_ssh
+[!windows] exists ${CHEZMOISOURCEDIR}/private_dot_ssh
+[windows] exists ${CHEZMOISOURCEDIR}/dot_ssh
 stop # FIXME
 cmp ${CHEZMOISOURCEDIR}/private_dot_ssh/config ${HOME}/.ssh/config
 
