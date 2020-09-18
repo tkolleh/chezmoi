@@ -76,6 +76,7 @@ func TestFileAttributes(t *testing.T) {
 	}{
 		Type: SourceFileTypePresent,
 		Name: []string{
+			".name",
 			"exact_name",
 			"name",
 		},
@@ -92,6 +93,7 @@ func TestFileAttributes(t *testing.T) {
 	}{
 		Type: SourceFileTypeScript,
 		Name: []string{
+			".name",
 			"exact_name",
 			"name",
 		},
@@ -101,10 +103,10 @@ func TestFileAttributes(t *testing.T) {
 	require.NoError(t, combinator.Generate(&fas, struct {
 		Type SourceFileTargetType
 		Name []string
-		Once []bool
 	}{
 		Type: SourceFileTypeSymlink,
 		Name: []string{
+			".name",
 			"exact_name",
 			"name",
 		},
