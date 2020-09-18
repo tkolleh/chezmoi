@@ -111,6 +111,17 @@ func TestFileAttributes(t *testing.T) {
 			"name",
 		},
 	}))
+	require.NoError(t, combinator.Generate(&fas, struct {
+		Type SourceFileTargetType
+		Name []string
+	}{
+		Type: SourceFileTypeSymlinked,
+		Name: []string{
+			".name",
+			"exact_name",
+			"name",
+		},
+	}))
 	for _, fa := range fas {
 		actualSourceName := fa.BaseName()
 		actualFA := parseFileAttributes(actualSourceName)

@@ -16,6 +16,7 @@ const (
 	SourceFileTypePresent
 	SourceFileTypeScript
 	SourceFileTypeSymlink
+	SourceFileTypeSymlinked
 )
 
 // DirAttributes holds attributes parsed from a source directory name.
@@ -136,6 +137,9 @@ func parseFileAttributes(sourceName string) FileAttributes {
 	case strings.HasPrefix(name, symlinkPrefix):
 		typ = SourceFileTypeSymlink
 		name = strings.TrimPrefix(name, symlinkPrefix)
+	case strings.HasPrefix(name, symlinkedPrefix):
+		typ = SourceFileTypeSymlinked
+		name = strings.TrimPrefix(name, symlinkedPrefix)
 	default:
 		if strings.HasPrefix(name, encryptedPrefix) {
 			name = strings.TrimPrefix(name, encryptedPrefix)
@@ -157,7 +161,7 @@ func parseFileAttributes(sourceName string) FileAttributes {
 	if strings.HasPrefix(name, dotPrefix) {
 		name = "." + strings.TrimPrefix(name, dotPrefix)
 	}
-	if strings.HasSuffix(name, TemplateSuffix) {
+	if typ != SourceFileTypeSymlinked && strings.HasSuffix(name, TemplateSuffix) {
 		name = strings.TrimSuffix(name, TemplateSuffix)
 		template = true
 	}
@@ -215,6 +219,8 @@ func (fa FileAttributes) BaseName() string {
 		}
 	case SourceFileTypeSymlink:
 		sourceName = symlinkPrefix
+	case SourceFileTypeSymlinked:
+		sourceName = symlinkedPrefix
 	}
 	if strings.HasPrefix(fa.Name, ".") {
 		sourceName += dotPrefix + strings.TrimPrefix(fa.Name, ".")

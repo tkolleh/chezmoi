@@ -38,6 +38,7 @@ const (
 	privatePrefix    = "private_"
 	runPrefix        = "run_"
 	symlinkPrefix    = "symlink_"
+	symlinkedPrefix  = "symlinked_"
 	TemplateSuffix   = ".tmpl"
 )
 

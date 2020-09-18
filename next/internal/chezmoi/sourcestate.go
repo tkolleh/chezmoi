@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -667,6 +668,18 @@ func (s *SourceState) newSourceStateFile(sourcePath string, fa FileAttributes, t
 			}
 			return &TargetStateSymlink{
 				lazyLinkname: newLazyLinkname(string(bytes.TrimSpace(linknameBytes))),
+			}, nil
+		}
+	case SourceFileTypeSymlinked:
+		targetStateEntryFunc = func() (TargetStateEntry, error) {
+			basepath := filepath.Join(s.targetDir, targetName)
+			targpath := sourcePath
+			relPath, err := filepath.Rel(basepath, targpath)
+			if err != nil {
+				return nil, err
+			}
+			return &TargetStateSymlink{
+				lazyLinkname: newLazyLinkname(relPath),
 			}, nil
 		}
 	default:
