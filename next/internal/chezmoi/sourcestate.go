@@ -672,7 +672,7 @@ func (s *SourceState) newSourceStateFile(sourcePath string, fa FileAttributes, t
 		}
 	case SourceFileTypeSymlinked:
 		targetStateEntryFunc = func() (TargetStateEntry, error) {
-			basepath := filepath.Join(s.targetDir, targetName)
+			basepath := filepath.Join(s.targetDir, targetName) // FIXME
 			targpath := sourcePath
 			relPath, err := filepath.Rel(basepath, targpath)
 			if err != nil {
