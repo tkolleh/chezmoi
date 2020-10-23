@@ -3105,7 +3105,7 @@ func init() {
 	assets["docs/TEMPLATING.md"] = []byte("" +
 		"# chezmoi Templating Guide\n" +
 		"\n" +
-		"<!--- toc ---> \n" +
+		"<!--- toc --->\n" +
 		"* [Introduction](#introduction)\n" +
 		"* [Creating a template file](#creating-a-template-file)\n" +
 		"* [Debugging templates](#debugging-templates)\n" +
@@ -3117,45 +3117,126 @@ func init() {
 		"\n" +
 		"## Introduction\n" +
 		"\n" +
-		"Templates are used to create different configurations depending on the enviorment.\n" +
-		"For example, you can use the hostname of the machine to create different\n" +
-		"configurations.\n" +
+		"Templates are used to change the contents of a file depending on the\n" +
+		"environment. For example, you can use the hostname of the machine to create\n" +
+		"different configurations on different machines.\n" +
 		"\n" +
 		"chezmoi uses the [`text/template`](https://pkg.go.dev/text/template) syntax from\n" +
-		"Go, extended with [text template functions from `sprig`](http://masterminds.github.io/sprig/)\n" +
-		"You can look there for more information.\n" +
+		"Go extended with [text template functions from\n" +
+		"`sprig`](http://masterminds.github.io/sprig/).\n" +
+		"\n" +
+		"When reading files from the source state, chezmoi interprets them as a template\n" +
+		"if either of the following is true:\n" +
+		"\n" +
+		"* The file name has a `.tmpl` suffix.\n" +
+		"* The file is in the `.chezmoitemplates` directory, or a subdirectory of\n" +
+		"  `.chezmoitemplates`.\n" +
+		"\n" +
+		"## Template data\n" +
+		"\n" +
+		"chezmoi provides a variety of template variables. For a full list, run\n" +
+		"\n" +
+		"    chezmoi data\n" +
+		"\n" +
+		"These come from a variety of sources:\n" +
+		"\n" +
+		"* Variables populated by chezmoi are in `.chezmoi`, for example `.chezmoi.os`.\n" +
+		"* Variables created by you in the `data` section of the configuration file.\n" +
+		"\n" +
+		"Furthermore, chezmoi provides a variety of functions to retrieve data at runtime\n" +
+		"from password managers, environment variables, and the filesystem.\n" +
 		"\n" +
 		"## Creating a template file\n" +
 		"\n" +
-		"chezmoi will not interpret all files as templates. It will only do that if the \n" +
-		"filename ends with .tmpl or it is in the .chezmoitemplates directory.\n" +
+		"There are several ways to create a template:\n" +
 		"\n" +
-		"There are a few ways to create a template file in chezmoi. \n" +
-		"If the file is not yet known by chezmoi you can do the following:\n" +
+		"* When adding a file for the first time, pass the `--template` argument, for example:\n" +
 		"\n" +
-		"\tchezmoi add ~/.zshrc --template\n" +
+		"      chezmoi add --template ~/.zshrc\n" +
 		"\n" +
-		"This will add ~/.zshrc as a template to the source state. This means that chezmoi\n" +
-		"will add a .tmpl extension to file and interpret any templates in the source upon\n" +
-		"updating.\n" +
+		"* When adding a file for the first time, you can pass the `--autotemplate`\n" +
+		"  argument, which tells chezmoi to make the file as a template and automatically\n" +
+		"  replace variables that chezmoi knows about, for example:\n" +
 		"\n" +
-		"You can also use the command\n" +
+		"      chezmoi add --autotemplate ~/.zshrc\n" +
 		"\n" +
-		"\tchezmoi add ~/.zshrc --autotemplate\n" +
+		"* If a file is already managed by chezmoi, but is not a template, you can make\n" +
+		"  it a template by running, for example:\n" +
 		"\n" +
-		"to add ~/.zshrc to the source state as a template, while replacing any strings\n" +
-		"that it can match with the variables from the data section of the chezmoi config.\n" +
+		"      chezmoi chattr +template ~/.zshrc\n" +
 		"\n" +
-		"If the file is already known by chezmoi, you can use the command\n" +
+		"* You can create a template manually in the source directory by giving it a\n" +
+		"  `.tmpl` extension, for example:\n" +
 		"\n" +
-		"\tchezmoi chattr template ~/.zshrc\n" +
+		"      chezmoi cd\n" +
+		"      $EDITOR dot_zshrc.tmpl\n" +
 		"\n" +
-		"Or you can simply add the file extension .tmpl to the file in the source directory.\n" +
-		"This way chezmoi will interpret the file as a template.\n" +
+		"* Templates in `.chezmoitemplates` must be created manually, for example:\n" +
+		"\n" +
+		"      chezmoi cd\n" +
+		"\t  mkdir -p .chezmoitemplates\n" +
+		"\t  cd .chezmoitemplates\n" +
+		"\t  $EDITOR mytemplate\n" +
+		"\n" +
+		"## Editing a template file\n" +
+		"\n" +
+		"The easiest way to edit a template is to use `chezmoi edit`, for example:\n" +
+		"\n" +
+		"\tchezmoi edit ~/.zshrc\n" +
+		"\n" +
+		"This will open the source file for `~/.zshrc` in `$EDITOR`. When you quit the\n" +
+		"editor, chezmoi will check the template syntax.\n" +
+		"\n" +
+		"If you want the changes you make to be immediately applied after you quit the\n" +
+		"editor, use the `--apply` option, for example:\n" +
+		"\n" +
+		"\tchezmoi edit --apply ~/.zshrc\n" +
+		"\n" +
+		"## Testing templates\n" +
+		"\n" +
+		"Templates can be tested with the `chezmoi execute-template` command which treats\n" +
+		"each of its arguments as a template and executes it. This can be useful for\n" +
+		"testing small fragments of templates, for example:\n" +
+		"\n" +
+		"    chezmoi execute-template '{{ .chezmoi.hostname }}'\n" +
+		"\n" +
+		"If there are no arguments, `chezmoi execute-template` will read the template\n" +
+		"from the standard input. This can be useful for testing whole files, for example:\n" +
+		"\n" +
+		"\tchezmoi cd\n" +
+		"\tchezmoi execute-template < dot_zshrc.tmpl\n" +
 		"\n" +
 		"## Template syntax\n" +
 		"\n" +
-		"Every template expression starts and ends with double curly brackets ('{{' and '}}').\n" +
+		"Template actions are written inside double curly brackets, `{{` and `}}`.\n" +
+		"Actions can be variables, pipelines, or control statements. Text outside actions\n" +
+		"is copied literally.\n" +
+		"\n" +
+		"Variables are written literally, for example:\n" +
+		"\n" +
+		"    {{ .chezmoi.hostname }}\n" +
+		"\n" +
+		"Conditional expressions can be written using `if`, `else if`, `else`, and `end`,\n" +
+		"for example:\n" +
+		"\n" +
+		"\t{{ if (eq .chezmoi.os \"darwin\") }}\n" +
+		"\t# darwin\n" +
+		"\t{{ else if (eq .chezmoi.os \"linux\" ) }}\n" +
+		"\t# linux\n" +
+		"\t{{ else }}\n" +
+		"\t# other operating system\n" +
+		"\t{{ end }}\n" +
+		"\n" +
+		"For\n" +
+		"\n" +
+		"For a full description of the template syntax, see the [`text/template`\n" +
+		"documentation](https://pkg.go.dev/text/template).\n" +
+		"\n" +
+		"\n" +
+		"### Examples\n" +
+		"\n" +
+		"Variables\n" +
+		"Every template action  starts and ends with double curly brackets (`{{` and `}}`).\n" +
 		"Between these brackets can be either variables or functions.\n" +
 		"\n" +
 		"An example with a variable\n" +
@@ -3167,12 +3248,12 @@ func init() {
 		"\t{{if expression}} Some text {{end}}\n" +
 		"\n" +
 		"If the result of the expression is empty (false, 0, empty string, ...), no output\n" +
-		"will be generated. Otherwise this will result in the text in between the if and the \n" +
+		"will be generated. Otherwise this will result in the text in between the if and the\n" +
 		"end.\n" +
 		"\n" +
 		"### Remove whitespace\n" +
 		"\n" +
-		"For formatting reasons you might want to leave some whitespace after or before the \n" +
+		"For formatting reasons you might want to leave some whitespace after or before the\n" +
 		"template code. This whitespace will remain in the final file, which you might not want.\n" +
 		"\n" +
 		"A solution for this is to place a minus sign and a space next to the brackets. So\n" +
@@ -3212,7 +3293,7 @@ func init() {
 		"\n" +
 		"\t# common config\n" +
 		"\texport EDITOR=vi\n" +
-		"\t\n" +
+		"\n" +
 		"\t# machine-specific configuration\n" +
 		"\t{{- if eq .chezmoi.hostname \"work-laptop\" }}\n" +
 		"\t# this will only be included in ~/.bashrc on work-laptop\n" +
@@ -3237,9 +3318,9 @@ func init() {
 		"\n" +
 		"There are separate operators for comparing integers.\n" +
 		"\n" +
-		"* `eq` - Return true if the first argument is equal to any other argument. - arg1 == arg2 \t\t \n" +
+		"* `eq` - Return true if the first argument is equal to any other argument. - arg1 == arg2\n" +
 		"* `ne` - Returns if arg1 is not equal to arg2                              - arg1 != arg2\n" +
-		"* `lt` - Returns if arg1 is less than arg2.                                - arg1 <  arg2 \n" +
+		"* `lt` - Returns if arg1 is less than arg2.                                - arg1 <  arg2\n" +
 		"* `le` - Returns if arg1 is less than or equal to arg2.                    - arg1 <= arg2\n" +
 		"* `gt` - Returns if arg1 is greater than arg2.                             - arg1 >  arg2\n" +
 		"* `ge` - Returns if arg1 is greater than or equal to arg2.                 - arg1 >= arg2\n" +
@@ -3253,7 +3334,7 @@ func init() {
 		"\n" +
 		"You can also create more complicated expressions. The `eq` command can accept multiple\n" +
 		"arguments. It will check if the first argument is equal to any of the other arguments.\n" +
-		"\t\n" +
+		"\n" +
 		"\t{{ if eq \"foo\" \"foo\" \"bar\" }}hello{{end}}\n" +
 		"\n" +
 		"\t{{ if eq \"foo\" \"bar\" \"foo\" }}hello{{end}}\n" +
@@ -3278,20 +3359,20 @@ func init() {
 		"\n" +
 		"## Helper functions\n" +
 		"\n" +
-		"chezmoi has added multiple helper functions to the [`text/template`](https://pkg.go.dev/text/template) \n" +
-		"syntax.  \n" +
+		"chezmoi has added multiple helper functions to the [`text/template`](https://pkg.go.dev/text/template)\n" +
+		"syntax.\n" +
 		"\n" +
-		"Chezmoi includes [`Sprig`](http://masterminds.github.io/sprig/), an extension to \n" +
-		"the text/template format that contains many helper functions. Take a look at \n" +
+		"Chezmoi includes [`Sprig`](http://masterminds.github.io/sprig/), an extension to\n" +
+		"the text/template format that contains many helper functions. Take a look at\n" +
 		"their documentation for a list.\n" +
 		"\n" +
-		"Chezmoi adds a few functions of its own as well. Take a look at the \n" +
+		"Chezmoi adds a few functions of its own as well. Take a look at the\n" +
 		"[`reference`](REFERENCE.md#template-functions) for complete list.\n" +
 		"\n" +
 		"## Template variables\n" +
 		"\n" +
 		"Chezmoi defines a few useful templates variables that depend on the system\n" +
-		"you are currently on. A list of the variables defined by chezmoi can be found \n" +
+		"you are currently on. A list of the variables defined by chezmoi can be found\n" +
 		"[here](REFERENCE.md#template-variables).\n" +
 		"\n" +
 		"There are, however more variables than\n" +
@@ -3310,7 +3391,7 @@ func init() {
 		"\n" +
 		"When you have multiple similar files, but they aren't quite the same, you can create\n" +
 		"a template file in the directory .chezmoitemplates. This template can be inserted\n" +
-		"in other template files. \n" +
+		"in other template files.\n" +
 		"For example:\n" +
 		"\n" +
 		"Create:\n" +
@@ -3338,7 +3419,7 @@ func init() {
 		"{{- template \"alacritty\" 18 -}}\n" +
 		"```\n" +
 		"\n" +
-		"Here we're calling the shared `alacritty` template with the he font size as \n" +
+		"Here we're calling the shared `alacritty` template with the he font size as\n" +
 		"the `.` value passed in. You can test this with `chezmoi cat`:\n" +
 		"\n" +
 		"\t$ chezmoi cat ~/small-font.yml\n" +
@@ -3392,7 +3473,7 @@ func init() {
 		"{{- template \"alacritty\" .alacritty.big -}}\n" +
 		"```\n" +
 		"\n" +
-		"At the moment, this means that you'll have to duplicate the alacritty data in \n" +
+		"At the moment, this means that you'll have to duplicate the alacritty data in\n" +
 		"the config file on every machine, but a feature will be added to avoid this.\n" +
 		"\n" +
 		"#### By passing a dictionary\n" +

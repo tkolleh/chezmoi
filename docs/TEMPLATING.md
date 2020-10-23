@@ -1,6 +1,6 @@
 # chezmoi Templating Guide
 
-<!--- toc ---> 
+<!--- toc --->
 * [Introduction](#introduction)
 * [Creating a template file](#creating-a-template-file)
 * [Debugging templates](#debugging-templates)
@@ -12,45 +12,126 @@
 
 ## Introduction
 
-Templates are used to create different configurations depending on the enviorment.
-For example, you can use the hostname of the machine to create different
-configurations.
+Templates are used to change the contents of a file depending on the
+environment. For example, you can use the hostname of the machine to create
+different configurations on different machines.
 
 chezmoi uses the [`text/template`](https://pkg.go.dev/text/template) syntax from
-Go, extended with [text template functions from `sprig`](http://masterminds.github.io/sprig/)
-You can look there for more information.
+Go extended with [text template functions from
+`sprig`](http://masterminds.github.io/sprig/).
+
+When reading files from the source state, chezmoi interprets them as a template
+if either of the following is true:
+
+* The file name has a `.tmpl` suffix.
+* The file is in the `.chezmoitemplates` directory, or a subdirectory of
+  `.chezmoitemplates`.
+
+## Template data
+
+chezmoi provides a variety of template variables. For a full list, run
+
+    chezmoi data
+
+These come from a variety of sources:
+
+* Variables populated by chezmoi are in `.chezmoi`, for example `.chezmoi.os`.
+* Variables created by you in the `data` section of the configuration file.
+
+Furthermore, chezmoi provides a variety of functions to retrieve data at runtime
+from password managers, environment variables, and the filesystem.
 
 ## Creating a template file
 
-chezmoi will not interpret all files as templates. It will only do that if the 
-filename ends with .tmpl or it is in the .chezmoitemplates directory.
+There are several ways to create a template:
 
-There are a few ways to create a template file in chezmoi. 
-If the file is not yet known by chezmoi you can do the following:
+* When adding a file for the first time, pass the `--template` argument, for example:
 
-	chezmoi add ~/.zshrc --template
+      chezmoi add --template ~/.zshrc
 
-This will add ~/.zshrc as a template to the source state. This means that chezmoi
-will add a .tmpl extension to file and interpret any templates in the source upon
-updating.
+* When adding a file for the first time, you can pass the `--autotemplate`
+  argument, which tells chezmoi to make the file as a template and automatically
+  replace variables that chezmoi knows about, for example:
 
-You can also use the command
+      chezmoi add --autotemplate ~/.zshrc
 
-	chezmoi add ~/.zshrc --autotemplate
+* If a file is already managed by chezmoi, but is not a template, you can make
+  it a template by running, for example:
 
-to add ~/.zshrc to the source state as a template, while replacing any strings
-that it can match with the variables from the data section of the chezmoi config.
+      chezmoi chattr +template ~/.zshrc
 
-If the file is already known by chezmoi, you can use the command
+* You can create a template manually in the source directory by giving it a
+  `.tmpl` extension, for example:
 
-	chezmoi chattr template ~/.zshrc
+      chezmoi cd
+      $EDITOR dot_zshrc.tmpl
 
-Or you can simply add the file extension .tmpl to the file in the source directory.
-This way chezmoi will interpret the file as a template.
+* Templates in `.chezmoitemplates` must be created manually, for example:
+
+      chezmoi cd
+	  mkdir -p .chezmoitemplates
+	  cd .chezmoitemplates
+	  $EDITOR mytemplate
+
+## Editing a template file
+
+The easiest way to edit a template is to use `chezmoi edit`, for example:
+
+	chezmoi edit ~/.zshrc
+
+This will open the source file for `~/.zshrc` in `$EDITOR`. When you quit the
+editor, chezmoi will check the template syntax.
+
+If you want the changes you make to be immediately applied after you quit the
+editor, use the `--apply` option, for example:
+
+	chezmoi edit --apply ~/.zshrc
+
+## Testing templates
+
+Templates can be tested with the `chezmoi execute-template` command which treats
+each of its arguments as a template and executes it. This can be useful for
+testing small fragments of templates, for example:
+
+    chezmoi execute-template '{{ .chezmoi.hostname }}'
+
+If there are no arguments, `chezmoi execute-template` will read the template
+from the standard input. This can be useful for testing whole files, for example:
+
+	chezmoi cd
+	chezmoi execute-template < dot_zshrc.tmpl
 
 ## Template syntax
 
-Every template expression starts and ends with double curly brackets ('{{' and '}}').
+Template actions are written inside double curly brackets, `{{` and `}}`.
+Actions can be variables, pipelines, or control statements. Text outside actions
+is copied literally.
+
+Variables are written literally, for example:
+
+    {{ .chezmoi.hostname }}
+
+Conditional expressions can be written using `if`, `else if`, `else`, and `end`,
+for example:
+
+	{{ if (eq .chezmoi.os "darwin") }}
+	# darwin
+	{{ else if (eq .chezmoi.os "linux" ) }}
+	# linux
+	{{ else }}
+	# other operating system
+	{{ end }}
+
+For
+
+For a full description of the template syntax, see the [`text/template`
+documentation](https://pkg.go.dev/text/template).
+
+
+### Examples
+
+Variables
+Every template action  starts and ends with double curly brackets (`{{` and `}}`).
 Between these brackets can be either variables or functions.
 
 An example with a variable
@@ -62,12 +143,12 @@ An example with a function
 	{{if expression}} Some text {{end}}
 
 If the result of the expression is empty (false, 0, empty string, ...), no output
-will be generated. Otherwise this will result in the text in between the if and the 
+will be generated. Otherwise this will result in the text in between the if and the
 end.
 
 ### Remove whitespace
 
-For formatting reasons you might want to leave some whitespace after or before the 
+For formatting reasons you might want to leave some whitespace after or before the
 template code. This whitespace will remain in the final file, which you might not want.
 
 A solution for this is to place a minus sign and a space next to the brackets. So
@@ -107,7 +188,7 @@ A very useful feature of chezmoi templates is the ability to perform logical ope
 
 	# common config
 	export EDITOR=vi
-	
+
 	# machine-specific configuration
 	{{- if eq .chezmoi.hostname "work-laptop" }}
 	# this will only be included in ~/.bashrc on work-laptop
@@ -132,9 +213,9 @@ Notice that some operators can accept more than two arguments.
 
 There are separate operators for comparing integers.
 
-* `eq` - Return true if the first argument is equal to any other argument. - arg1 == arg2 		 
+* `eq` - Return true if the first argument is equal to any other argument. - arg1 == arg2
 * `ne` - Returns if arg1 is not equal to arg2                              - arg1 != arg2
-* `lt` - Returns if arg1 is less than arg2.                                - arg1 <  arg2 
+* `lt` - Returns if arg1 is less than arg2.                                - arg1 <  arg2
 * `le` - Returns if arg1 is less than or equal to arg2.                    - arg1 <= arg2
 * `gt` - Returns if arg1 is greater than arg2.                             - arg1 >  arg2
 * `ge` - Returns if arg1 is greater than or equal to arg2.                 - arg1 >= arg2
@@ -148,7 +229,7 @@ In this part we will see how to create more complicated expressions.
 
 You can also create more complicated expressions. The `eq` command can accept multiple
 arguments. It will check if the first argument is equal to any of the other arguments.
-	
+
 	{{ if eq "foo" "foo" "bar" }}hello{{end}}
 
 	{{ if eq "foo" "bar" "foo" }}hello{{end}}
@@ -173,20 +254,20 @@ This way you can chain as many operators together as you like.
 
 ## Helper functions
 
-chezmoi has added multiple helper functions to the [`text/template`](https://pkg.go.dev/text/template) 
-syntax.  
+chezmoi has added multiple helper functions to the [`text/template`](https://pkg.go.dev/text/template)
+syntax.
 
-Chezmoi includes [`Sprig`](http://masterminds.github.io/sprig/), an extension to 
-the text/template format that contains many helper functions. Take a look at 
+Chezmoi includes [`Sprig`](http://masterminds.github.io/sprig/), an extension to
+the text/template format that contains many helper functions. Take a look at
 their documentation for a list.
 
-Chezmoi adds a few functions of its own as well. Take a look at the 
+Chezmoi adds a few functions of its own as well. Take a look at the
 [`reference`](REFERENCE.md#template-functions) for complete list.
 
 ## Template variables
 
 Chezmoi defines a few useful templates variables that depend on the system
-you are currently on. A list of the variables defined by chezmoi can be found 
+you are currently on. A list of the variables defined by chezmoi can be found
 [here](REFERENCE.md#template-variables).
 
 There are, however more variables than
@@ -205,7 +286,7 @@ This way you can also access the variables you defined yourself.
 
 When you have multiple similar files, but they aren't quite the same, you can create
 a template file in the directory .chezmoitemplates. This template can be inserted
-in other template files. 
+in other template files.
 For example:
 
 Create:
@@ -233,7 +314,7 @@ Create other files using the template
 {{- template "alacritty" 18 -}}
 ```
 
-Here we're calling the shared `alacritty` template with the he font size as 
+Here we're calling the shared `alacritty` template with the he font size as
 the `.` value passed in. You can test this with `chezmoi cat`:
 
 	$ chezmoi cat ~/small-font.yml
@@ -287,7 +368,7 @@ somemore: config
 {{- template "alacritty" .alacritty.big -}}
 ```
 
-At the moment, this means that you'll have to duplicate the alacritty data in 
+At the moment, this means that you'll have to duplicate the alacritty data in
 the config file on every machine, but a feature will be added to avoid this.
 
 #### By passing a dictionary
